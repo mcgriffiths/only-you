@@ -11,7 +11,7 @@ shinyUI(fluidPage(
     sidebarPanel(
        textInput("username", "Username:"),
        selectInput("month", "Month:", 
-                   choices = format(seq(as.Date(Sys.Date()), by = "-1 month", length.out= 12),"%B %Y")),
+                   choices = format(seq(as.Date(Sys.Date()), by = "-1 month", length.out= 24),"%B %Y")),
        actionButton("gobutton","Go")
     ),
     
