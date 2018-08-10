@@ -4,6 +4,7 @@ library(rvest)
 library(stringr)
 library(dplyr)
 library(zoo)
+library(xml2)
 
 shinyServer(function(input, output) {
   
@@ -15,43 +16,41 @@ shinyServer(function(input, output) {
     enddate <- as.Date(month, frac = 1) #get last day of month
     
     #scrape user's monthly play page
-    userplays <- read_html(paste0("https://boardgamegeek.com/plays/bygame/user/",
+    userplays <- read_xml(paste0("https://boardgamegeek.com/xmlapi2/plays?username=",
                                   str_replace(username," ","%20"),
-                                  "/subtype/boardgame/start/",
+                                  "&mindate=",
                                   startdate,
-                                  "/end/",
+                                  "&maxdate=",
                                   enddate))
     
-    #get game names
-    games <- userplays %>%
-      html_nodes("#main_content tr+ tr a") %>%
-      html_text
+    #get items
+    items <- userplays %>%
+      xml_find_all(".//play/item") 
     
     #throw error if no games
     validate(
-      need(length(games) > 0, 
+      need(length(items) > 0, 
            "No plays found for that user in that month. Please check username and try again"))
     
-    #get game ids
-    game_ids <- userplays %>%
-      html_nodes("#main_content tr+ tr a") %>%
-      html_attr("href") %>%
-      str_replace("/[:alpha:]+/", "") %>%
-      str_replace ("/.+","")
+    games <- unique(xml_attr(items, "name"))
+    game_ids <- unique(xml_attr(items,"objectid"))
     
     #function to find all players of a game 
     get_players <- function(game_id, month, username){
       
       #scrape game's montly plays page
-      gameplays <- read_html(paste0("https://boardgamegeek.com/playstats/thing/",
+      gameplays <- read_xml(paste0("https://boardgamegeek.com/xmlapi2/plays?id=",
                                     game_id,
-                                    "/",
-                                    format(month, "%Y-%m")))
+                                   "&mindate=",
+                                   as.Date(month),
+                                   "&maxdate=",
+                                   as.Date(month, frac = 1)))
       
       #get all players
       players <- gameplays %>%
-        html_nodes(".username a") %>%
-        html_text %>%
+        xml_find_all(".//play") %>%
+        xml_attr("userid") %>%
+        unique %>%
         sort
       
       #remove self
