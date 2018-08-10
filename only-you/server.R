@@ -53,7 +53,7 @@ shinyServer(function(input, output) {
         unique %>%
         sort
       
-      #remove self
+      #remove self - no longer works because have ids not names
       otherplayers <- paste(players[players != username], collapse = ", ")
       
       data_frame(id = game_id, nplayers = length(players), players = otherplayers) 
