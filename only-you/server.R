@@ -5,6 +5,7 @@ library(stringr)
 library(dplyr)
 library(zoo)
 library(xml2)
+library(shinycssloaders)
 
 shinyServer(function(input, output) {
   
@@ -39,21 +40,18 @@ shinyServer(function(input, output) {
     get_players <- function(game_id, month, username){
       
       #scrape game's montly plays page
-      gameplays <- read_xml(paste0("https://boardgamegeek.com/xmlapi2/plays?id=",
+      gameplays <- read_html(paste0("https://boardgamegeek.com/playstats/thing/",
                                     game_id,
-                                   "&mindate=",
-                                   as.Date(month),
-                                   "&maxdate=",
-                                   as.Date(month, frac = 1)))
+                                    "/",
+                                    format(month, "%Y-%m")))
       
       #get all players
       players <- gameplays %>%
-        xml_find_all(".//play") %>%
-        xml_attr("userid") %>%
-        unique %>%
+        html_nodes(".username a") %>%
+        html_text %>%
         sort
       
-      #remove self - no longer works because have ids not names
+      #remove self 
       otherplayers <- paste(players[players != username], collapse = ", ")
       
       data_frame(id = game_id, nplayers = length(players), players = otherplayers) 
