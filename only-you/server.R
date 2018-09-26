@@ -16,13 +16,33 @@ shinyServer(function(input, output) {
     startdate <- as.Date(month)
     enddate <- as.Date(month, frac = 1) #get last day of month
     
+    userplays_string <- paste0("https://boardgamegeek.com/xmlapi2/plays?username=",
+                               str_replace(username," ","%20"),
+                               "&mindate=",
+                               startdate,
+                               "&maxdate=",
+                               enddate)
+    
     #scrape user's monthly play page
-    userplays <- read_xml(paste0("https://boardgamegeek.com/xmlapi2/plays?username=",
-                                  str_replace(username," ","%20"),
-                                  "&mindate=",
-                                  startdate,
-                                  "&maxdate=",
-                                  enddate))
+    userplays <- read_xml(userplays_string)
+    totplays <- userplays %>% xml_attr('total') %>% as.integer
+    pages <- ceiling(totplays/100)
+
+    if(pages > 1){
+
+      for (i in 2:pages){
+
+        page <- read_xml(paste0(userplays_string,
+                                "&page=",
+                                i))
+
+        pagechildren <- xml_children(page)
+
+        for (child in pagechildren) {
+          xml_add_child(userplays, child)
+        }
+      }
+    }
     
     #get items
     items <- userplays %>%
