@@ -6,6 +6,9 @@ library(dplyr)
 library(zoo)
 library(xml2)
 library(shinycssloaders)
+library(purrr)
+library(tidyr)
+library(lubridate)
 
 shinyServer(function(input, output) {
   
@@ -15,7 +18,7 @@ shinyServer(function(input, output) {
     month <- as.yearmon(input$month)
     startdate <- as.Date(month)
     enddate <- as.Date(month, frac = 1) #get last day of month
-    
+        
     #scrape user's monthly play page
     userplays <- read_xml(paste0("https://boardgamegeek.com/xmlapi2/plays?username=",
                                   str_replace(username," ","%20"),
@@ -59,7 +62,7 @@ shinyServer(function(input, output) {
     }
     
     #put all results together
-    game_df <- bind_rows(lapply(game_ids, get_players, month, username))
+    game_df <- map_df(game_ids, get_players, month, username)
     game_df$name <- games
     
     #set up final output
@@ -81,5 +84,50 @@ shinyServer(function(input, output) {
                  paging = FALSE,
                  autowidth = TRUE,
                  columnDefs = list(list(width="200px", targets = list(0)))))
+  
+  #main function to get 5 year plays
+  all_years <- eventReactive(input$gobutton_5, { #set up so nothing happens until button clicked
+    read_page <- function(pagenum, username){
+      Sys.sleep(2) # time delay to play nice with BGG
+      
+      # create URL from username and page number
+      page_string <- paste0('https://www.boardgamegeek.com/xmlapi2/plays?username=',
+                            username,
+                            '&page=',
+                            pagenum)
+      
+      plays <- read_xml(page_string) # read the XML
+      
+      # now parse the required fields from the XML
+      date <- plays %>% xml_find_all('//play') %>% xml_attr('date') %>% as.Date()
+      quantity <- plays %>% xml_find_all('//play') %>% xml_attr('quantity') %>% as.integer()
+      id <- plays %>% xml_find_all('//play/item') %>% xml_attr('objectid')
+      name <- plays %>% xml_find_all('//play/item') %>% xml_attr('name')
+      
+      # and put them in a data frame to return
+      data_frame(date, quantity, id, name)
+    }
+    
+    page_string <- paste0('https://www.boardgamegeek.com/xmlapi2/plays?username=', input$username_5)
+    
+    # get total plays and convert to total number of pages to retrieve
+    tot_plays <- read_xml(page_string) %>% xml_attr('total') %>% as.integer()
+    pages <- ceiling(tot_plays / 100)
+    
+    #read all plays pages into one data frame using purrr::map_df to iterate
+    map_df(1:pages, read_page, input$username_5)
+    
+  })
+  
+  output$all_years <- DT::renderDataTable({
+    all_years() %>%
+      mutate(year = year(date)) %>%
+      arrange(name, year) %>%
+      group_by(name, id, year) %>%
+      summarise(quantity = sum(quantity)) %>%
+      filter(year <= input$end_year) %>%
+      filter(first(year) == input$start_year, 
+             n() >= input$end_year - input$start_year)
+  })
   
 })
