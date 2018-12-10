@@ -23,13 +23,12 @@ shinyUI(navbarPage('qwerty tools',
   )
   ),
   
-  tabPanel("Five years ago",
+  tabPanel("New to me in...",
            sidebarLayout(
              sidebarPanel(
                textInput("username_5", "Username:"),
                actionButton("gobutton_5","Go"),
-               numericInput("end_year", "End year:", 2018, min = 2000, max = 2018, step = 1),
-               numericInput("start_year", "Start year:", 2013, min = 2000, max = 2018, step = 1)
+               numericInput("start_year", "New to me in:", 2013, min = 2000, max = 2018, step = 1)
              ),
              
              # Show a plot of the generated distribution
