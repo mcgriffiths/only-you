@@ -145,9 +145,21 @@ shinyServer(function(input, output) {
       arrange(name, year) %>%
       group_by(name, id, year) %>%
       summarise(quantity = sum(quantity)) %>%
-      filter(year <= input$end_year) %>%
-      filter(first(year) == input$start_year, 
-             n() >= input$end_year - input$start_year)
-  })
+      filter(first(year) == input$start_year) %>%
+      complete(year = input$start_year:year(Sys.Date())) %>%
+      summarise(years_played = sum(!is.na(quantity)), 
+                tot_plays = sum(quantity, na.rm = T),
+                per_year = paste(quantity, collapse = '/')) %>%
+      mutate(per_year = str_replace_all(per_year, 'NA', '0')) %>%
+      arrange(desc(years_played), desc(tot_plays)) %>%
+      select(name, years_played, tot_plays, per_year)
+    
+  },
+  colnames = c("Game", "Years played", "Total plays", "Plays by year"),
+  rownames = FALSE,
+  options = list(searching = FALSE,
+                 paging = TRUE,
+                 autowidth = TRUE,
+                 columnDefs = list(list(width="200px", targets = list(0)))))
   
 })
