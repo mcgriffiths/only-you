@@ -128,7 +128,8 @@ shinyServer(function(input, output) {
       data_frame(date, quantity, id, name)
     }
     
-    page_string <- paste0('https://www.boardgamegeek.com/xmlapi2/plays?username=', input$username_5)
+    page_string <- paste0('https://www.boardgamegeek.com/xmlapi2/plays?username=', 
+                          str_replace(input$username_5, " ", "%20"))
     
     # get total plays and convert to total number of pages to retrieve
     tot_plays <- read_xml(page_string) %>% xml_attr('total') %>% as.integer()
