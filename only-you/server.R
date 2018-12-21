@@ -112,7 +112,7 @@ shinyServer(function(input, output) {
       
       # create URL from username and page number
       page_string <- paste0('https://www.boardgamegeek.com/xmlapi2/plays?username=',
-                            username,
+                            str_replace(username," ","%20"),
                             '&page=',
                             pagenum)
       
